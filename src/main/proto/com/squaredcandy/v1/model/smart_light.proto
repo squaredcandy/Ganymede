@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package com.squaredcandy.protobuf.v1.model;
+
+option java_package = "com.squaredcandy.protobuf.v1.model";
+option java_outer_classname = "SmartLightProto";
+
+message SmartLightProtoModel {
+  string name = 1;
+  string mac_address = 2;
+  google.protobuf.Timestamp created = 3;
+  google.protobuf.Timestamp updated = 4;
+  repeated SmartLightDataProtoModel data = 5;
+}
+
+message SmartLightDataProtoModel {
+  google.protobuf.Timestamp timestamp = 1;
+  bool is_connected = 2;
+  string ip_address = 3; // Nullable
+  bool is_on = 4;
+  LightColorProtoModel color = 5; // Nullable
+  LightLocationProtoModel location = 6; // Nullable
+}
+
+message LightColorProtoModel {
+  oneof color {
+    LightColorHSBProtoModel hsb = 1;
+    LightColorKelvinProtoModel kelvin = 2;
+  }
+}
+
+message LightColorKelvinProtoModel {
+  int32 kelvin = 1;
+  float brightness = 2;
+}
+
+message LightColorHSBProtoModel {
+  float hue = 1;
+  float saturation = 2;
+  float brightness = 3;
+}
+
+message LightLocationProtoModel {
+  string location = 1;
+}
+
+message SetSmartLightName {
+  string new_name = 1;
+}
+
+message SetSmartLightPower {
+  bool is_on = 1;
+}
+
+message SetSmartLightColor {
+  LightColorProtoModel color = 1;
+}
+
+message SetSmartLightLocation {
+  LightLocationProtoModel location = 1;
+}

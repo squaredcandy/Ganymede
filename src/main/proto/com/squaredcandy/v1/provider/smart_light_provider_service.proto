@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+import "com/squaredcandy/v1/model/smart_light.proto";
+
+package com.squaredcandy.protobuf.v1.provider;
+
+option java_package = "com.squaredcandy.protobuf.v1.provider";
+option java_outer_classname = "SmartLightProviderServiceProto";
+
+message ProvideSmartLightRequest {
+  com.squaredcandy.protobuf.v1.model.SmartLightProtoModel smart_light = 1;
+}
+
+message ProvideSmartLightResponse {
+  bool updated = 1;
+}
+
+message SmartLightCommandRequest {
+  string ip_address = 1;
+}
+
+message ServerSmartLightCommand {
+  oneof command {
+    SetSmartLightPropertyRequest set_property = 1;
+  }
+}
+
+message SetSmartLightPropertyRequest {
+  oneof property {
+    com.squaredcandy.protobuf.v1.model.SetSmartLightName name = 3;
+    com.squaredcandy.protobuf.v1.model.SetSmartLightPower power = 4;
+    com.squaredcandy.protobuf.v1.model.SetSmartLightColor color = 5;
+    com.squaredcandy.protobuf.v1.model.SetSmartLightLocation location = 6;
+  }
+}
+
+service SmartLightProviderService {
+  rpc ProvideSmartLight(ProvideSmartLightRequest) returns (ProvideSmartLightResponse);
+  rpc OpenSmartLightCommandStream(SmartLightCommandRequest) returns (stream ServerSmartLightCommand);
+}
