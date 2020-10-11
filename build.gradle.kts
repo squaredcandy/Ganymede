@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import com.google.protobuf.gradle.*
 
 plugins {
@@ -16,10 +17,8 @@ repositories {
 }
 
 sourceSets {
-    get("main").proto {
-        srcDir("src/main/proto")
-    }
     getByName("main") {
+        proto.srcDir("src/main/proto")
         java.srcDir("build/generated/source/proto/main/java")
     }
 }
@@ -31,7 +30,11 @@ val kroto = "0.6.1"
 dependencies {
     val coroutine = "1.3.9"
     val truth = "1.0.1"
+    val h2 = "1.4.199"
     val javax = "1.3.2"
+    val turbine = "0.2.1"
+    val io = "0.0.4"
+    val europa = "0.0.6"
 
     implementation(kotlin("stdlib"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutine")
@@ -42,12 +45,20 @@ dependencies {
     implementation("io.grpc:grpc-stub:$grpc")
     implementation("com.github.marcoferrer.krotoplus:kroto-plus-coroutines:$kroto")
 
-    implementation("com.github.squaredcandy:Io:0.0.1")
-    implementation("com.github.squaredcandy:Europa:0.0.3")
+    implementation("com.github.squaredcandy:Io:$io")
+    implementation("com.github.squaredcandy:Europa:$europa")
 
+    testImplementation("app.cash.turbine:turbine:$turbine")
     testImplementation("com.google.truth:truth:$truth")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutine")
+    testImplementation("com.h2database:h2:$h2")
     testImplementation(kotlin("test-junit5"))
+}
+tasks.withType<KotlinCompile>() {
+    kotlinOptions.jvmTarget = "1.8"
+}
+tasks.test {
+    useJUnitPlatform()
 }
 
 protobuf {

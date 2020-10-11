@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+import "com/squaredcandy/v1/model/smart_light.proto";
+
+package com.squaredcandy.protobuf.v1.user;
+
+option java_package = "com.squaredcandy.protobuf.v1.user";
+option java_outer_classname = "SmartLightUserServiceProto";
+
+message SetSmartLightPropertyRequest {
+	string userId = 1;
+	string mac_address = 2;
+	oneof property {
+		com.squaredcandy.protobuf.v1.model.SetSmartLightName name = 3;
+		com.squaredcandy.protobuf.v1.model.SetSmartLightPower power = 4;
+		com.squaredcandy.protobuf.v1.model.SetSmartLightColor color = 5;
+		com.squaredcandy.protobuf.v1.model.SetSmartLightLocation location = 6;
+	}
+}
+
+message SetSmartLightPropertyResponse {
+	bool updated = 1;
+}
+
+message GetSmartLightRequest {
+	string user_id = 1;
+	string mac_address = 2;
+}
+
+message GetSmartLightResponse {
+	com.squaredcandy.protobuf.v1.model.SmartLightProtoModel smart_light = 1;
+}
+
+service SmartLightUserService {
+	rpc GetSmartLight (GetSmartLightRequest) returns (GetSmartLightResponse);
+	rpc GetSmartLightStream (GetSmartLightRequest) returns (stream GetSmartLightResponse);
+	rpc SetSmartLightProperty (SetSmartLightPropertyRequest) returns (SetSmartLightPropertyResponse);
+}
