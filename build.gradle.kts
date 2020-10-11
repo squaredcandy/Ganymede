@@ -5,6 +5,7 @@ plugins {
     kotlin("jvm") version "1.4.10"
     kotlin("kapt") version "1.4.10"
     id("com.google.protobuf") version "0.8.13"
+    maven
 }
 
 group = "org.squaredcandy"
