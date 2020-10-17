@@ -6,20 +6,20 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-class EventService(
-) {
-    private var job: Job? = null
+class EventService {
+    private var jobList: MutableList<Job> = mutableListOf()
 
     fun close() {
-        job?.cancel()
+        jobList.forEach { it.cancel() }
     }
 
     fun init(eventFlow: EventFlow) {
-        job = CoroutineScope(Dispatchers.Default).launch {
+        val newJob = CoroutineScope(Dispatchers.Default).launch {
             eventFlow.eventFlow.collect { event ->
                 println(event)
                 // add to database
             }
         }
+        jobList.add(newJob)
     }
 }
