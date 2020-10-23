@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "org.squaredcandy"
-version = "0.0.3"
+version = "0.0.4"
 
 repositories {
     mavenCentral()
@@ -34,7 +34,7 @@ dependencies {
     val h2 = "1.4.199"
     val javax = "1.3.2"
     val turbine = "0.2.1"
-    val io = "0.0.4"
+    val io = "0.0.5"
     val europa = "0.0.6"
 
     implementation(kotlin("stdlib"))
