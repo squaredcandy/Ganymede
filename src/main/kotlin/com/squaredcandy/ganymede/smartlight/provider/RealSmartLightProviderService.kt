@@ -26,7 +26,10 @@ internal class RealSmartLightProviderService(
         request: SmartLightProviderServiceProto.ProvideSmartLightRequest
     ): SmartLightProviderServiceProto.ProvideSmartLightResponse {
         return ProvideSmartLightResponse {
-            updated = providerService.provideSmartLight(request.smartLight.toSmartLight()).isSuccess()
+            updated = providerService.provideSmartLight(
+                request.smartLight.toSmartLight(),
+                if(request.receiveCommands) request.providerIpAddress else null
+            ).isSuccess()
         }
     }
 
@@ -34,14 +37,14 @@ internal class RealSmartLightProviderService(
         request: SmartLightProviderServiceProto.SmartLightCommandRequest,
         responseChannel: SendChannel<SmartLightProviderServiceProto.ServerSmartLightCommand>
     ) {
-        val ipAddress = request.ipAddress
-        if(ipAddress == null || ipAddress.isBlank()) {
+        val providerIpAddress = request.providerIpAddress
+        if(providerIpAddress == null || providerIpAddress.isBlank()) {
             responseChannel.close(StatusRuntimeException(Status.INVALID_ARGUMENT))
             return
         }
         val relayChannel = Channel<SmartLightCommand>(0)
         // Open a stream to the outside world, keeping the gRPC details hidden
-        providerService.openCommandStream(ipAddress, relayChannel)
+        providerService.openCommandStream(providerIpAddress, relayChannel)
 
         relayChannel.consumeAsFlow()
             .catch { throwable ->
@@ -119,6 +122,8 @@ internal class RealSmartLightProviderService(
 
     private fun SmartLightCommand.UpdateName.toUpdateNameRequest(): SmartLightProviderServiceProto.ServerSmartLightCommand {
         return ServerSmartLightCommand {
+            this.lightMacAddress = this@toUpdateNameRequest.macAddress
+            this.lightIpAddress = this@toUpdateNameRequest.ipAddress
             setProperty {
                 name = SetSmartLightName {
                     this.newName = this@toUpdateNameRequest.name
@@ -129,6 +134,8 @@ internal class RealSmartLightProviderService(
 
     private fun SmartLightCommand.UpdatePower.toUpdatePowerRequest(): SmartLightProviderServiceProto.ServerSmartLightCommand {
         return ServerSmartLightCommand {
+            this.lightMacAddress = this@toUpdatePowerRequest.macAddress
+            this.lightIpAddress = this@toUpdatePowerRequest.ipAddress
             setProperty {
                 power = SetSmartLightPower {
                     this.isOn = this@toUpdatePowerRequest.isOn
@@ -139,6 +146,8 @@ internal class RealSmartLightProviderService(
 
     private fun SmartLightCommand.UpdateColor.toUpdateColorRequest(): SmartLightProviderServiceProto.ServerSmartLightCommand {
         return ServerSmartLightCommand {
+            this.lightMacAddress = this@toUpdateColorRequest.macAddress
+            this.lightIpAddress = this@toUpdateColorRequest.ipAddress
             setProperty {
                 color = SetSmartLightColor {
                     color {
@@ -165,6 +174,8 @@ internal class RealSmartLightProviderService(
 
     private fun SmartLightCommand.UpdateLocation.toUpdateLocationRequest(): SmartLightProviderServiceProto.ServerSmartLightCommand {
         return ServerSmartLightCommand {
+            this.lightMacAddress = this@toUpdateLocationRequest.macAddress
+            this.lightIpAddress = this@toUpdateLocationRequest.ipAddress
             setProperty {
                 location {
                     location {

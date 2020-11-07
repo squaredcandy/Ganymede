@@ -8,7 +8,18 @@ option java_package = "com.squaredcandy.protobuf.v1.provider";
 option java_outer_classname = "SmartLightProviderServiceProto";
 
 message ProvideSmartLightRequest {
+  /**
+   * Smart light to provide to the server
+   */
   com.squaredcandy.protobuf.v1.model.SmartLightProtoModel smart_light = 1;
+  /**
+   * The IP Address that provided this smart light
+   */
+  string provider_ip_address = 2;
+  /**
+   * Can this IP Address receive and process commands we send to it?
+   */
+  bool receive_commands = 3;
 }
 
 message ProvideSmartLightResponse {
@@ -16,12 +27,23 @@ message ProvideSmartLightResponse {
 }
 
 message SmartLightCommandRequest {
-  string ip_address = 1;
+  /**
+   * The IP Address of this provider
+   */
+  string provider_ip_address = 1;
 }
 
 message ServerSmartLightCommand {
+  /**
+   * MAC Address of the light we want to command
+   */
+  string light_mac_address = 1;
+  /**
+   * IP Address of the light we want to command
+   */
+  string light_ip_address = 2;
   oneof command {
-    SetSmartLightPropertyRequest set_property = 1;
+    SetSmartLightPropertyRequest set_property = 3;
   }
 }
 

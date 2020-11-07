@@ -6,6 +6,6 @@ import kotlinx.coroutines.channels.SendChannel
 import com.squaredcandy.ganymede.smartlight.model.SmartLightCommand
 
 interface SmartLightProviderService {
-    suspend fun provideSmartLight(smartLight: SmartLight): Result<Unit>
-    fun openCommandStream(ipAddress: String, commandChannel: SendChannel<SmartLightCommand>)
+    suspend fun provideSmartLight(smartLight: SmartLight, newProviderIpAddress: String?): Result<Unit>
+    fun openCommandStream(providerIpAddress: String, commandChannel: SendChannel<SmartLightCommand>)
 }

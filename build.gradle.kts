@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "org.squaredcandy"
-version = "0.0.4"
+version = "0.0.5"
 
 repositories {
     mavenCentral()
@@ -35,7 +35,7 @@ dependencies {
     val javax = "1.3.2"
     val turbine = "0.2.1"
     val io = "0.0.5"
-    val europa = "0.0.6"
+    val europa = "0.0.7"
 
     implementation(kotlin("stdlib"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutine")

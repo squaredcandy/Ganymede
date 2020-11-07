@@ -8,7 +8,6 @@ import com.squaredcandy.europa.model.SmartLightCapability.*
 import com.squaredcandy.europa.model.SmartLightData
 import com.squaredcandy.europa.util.Result
 import com.squaredcandy.europa.util.isSuccess
-import com.squaredcandy.europa.util.onSuccess
 import com.squaredcandy.protobuf.v1.model.*
 import com.squaredcandy.protobuf.v1.model.SmartLightProto.*
 import com.squaredcandy.protobuf.v1.user.GetSmartLightResponse

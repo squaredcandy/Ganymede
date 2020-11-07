@@ -20,6 +20,14 @@ open class SmartLightServiceLink(
     private val database: SmartLightDatabase,
 ): SmartLightUserService, SmartLightProviderService {
 
+    /**
+     * Mapping Light IP Addresses to Provider IP Addresses
+     */
+    private val lightProviderMap = mutableMapOf<String, String>()
+
+    /**
+     * Mapping Provider IP Addresses to their channels
+     */
     private val commandMap = mutableMapOf<String, SendChannel<SmartLightCommand>>()
 
     override suspend fun getSmartLight(macAddress: String): Result<SmartLight> {
@@ -47,43 +55,49 @@ open class SmartLightServiceLink(
             }
         }
 
-        val ipAddress = smartLight.smartLightData.lastOrNull()?.ipAddress
+        val lightIpAddress = smartLight.smartLightData.lastOrNull()?.ipAddress
             ?: return Result.Failure(StatusRuntimeException(Status.NOT_FOUND))
-        val commandChannel = commandMap[ipAddress]
+        val providerIpAddress = lightProviderMap[lightIpAddress]
+            ?: return Result.Failure(StatusRuntimeException(Status.UNAVAILABLE))
+        val commandChannel = commandMap[providerIpAddress]
             ?: return Result.Failure(StatusRuntimeException(Status.UNAVAILABLE))
         if(commandChannel.isClosedForSend) {
-            commandMap.remove(ipAddress)
+            commandMap.remove(lightIpAddress)
             return Result.Failure(StatusRuntimeException(Status.UNAVAILABLE))
         }
         val command = when(request) {
-            is SmartLightUpdateRequest.Name -> request.toUpdateName(ipAddress)
-            is SmartLightUpdateRequest.Power -> request.toUpdatePower(ipAddress)
-            is SmartLightUpdateRequest.Color -> request.toUpdateColor(ipAddress)
-            is SmartLightUpdateRequest.Location -> request.toUpdateLocation(ipAddress)
+            is SmartLightUpdateRequest.Name -> request.toUpdateName(lightIpAddress)
+            is SmartLightUpdateRequest.Power -> request.toUpdatePower(lightIpAddress)
+            is SmartLightUpdateRequest.Color -> request.toUpdateColor(lightIpAddress)
+            is SmartLightUpdateRequest.Location -> request.toUpdateLocation(lightIpAddress)
         }
 
         commandChannel.send(command)
         return Result.Success(Unit)
     }
 
-    override suspend fun provideSmartLight(smartLight: SmartLight): Result<Unit> {
-        return database.upsertSmartLight(smartLight)
+    override suspend fun provideSmartLight(smartLight: SmartLight, newProviderIpAddress: String?): Result<Unit> {
+        return database.upsertSmartLight(smartLight).also {
+            if(newProviderIpAddress == null) return@also
+            val ipAddress = smartLight.smartLightData.lastOrNull()?.ipAddress ?: return@also
+            lightProviderMap[ipAddress] = newProviderIpAddress
+        }
     }
 
     @ExperimentalCoroutinesApi
     final override fun openCommandStream(
-        ipAddress: String,
+        providerIpAddress: String,
         commandChannel: SendChannel<SmartLightCommand>
     ) {
-        val currentChannel = commandMap[ipAddress]
+        val currentChannel = commandMap[providerIpAddress]
         if(currentChannel != null && !currentChannel.isClosedForSend) {
             commandChannel.close(StatusRuntimeException(Status.ALREADY_EXISTS))
             return
         }
-        commandMap[ipAddress] = commandChannel
+        commandMap[providerIpAddress] = commandChannel
 
         commandChannel.invokeOnClose {
-            commandMap.remove(ipAddress)
+            commandMap.remove(providerIpAddress)
         }
     }
 

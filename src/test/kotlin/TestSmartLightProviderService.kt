@@ -1,25 +1,25 @@
+import ResultSubject.Companion.assertThat
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import com.squaredcandy.europa.model.SmartLightCapability
+import com.squaredcandy.ganymede.smartlight.SmartLightServiceLink
+import com.squaredcandy.ganymede.smartlight.model.SmartLightUpdateRequest
+import com.squaredcandy.ganymede.smartlight.provider.RealSmartLightProviderService
 import com.squaredcandy.io.db.smartlight.SmartLightDatabase
 import com.squaredcandy.io.db.util.DatabaseProvider
-import com.squaredcandy.europa.model.SmartLight
-import com.squaredcandy.europa.model.SmartLightCapability
-import com.squaredcandy.protobuf.v1.model.*
-import com.squaredcandy.protobuf.v1.provider.ProvideSmartLightRequest
 import com.squaredcandy.protobuf.v1.provider.SmartLightCommandRequest
-import com.squaredcandy.protobuf.v1.provider.SmartLightProviderServiceProto.*
-import com.squaredcandy.protobuf.v1.model.SmartLightProto.*
+import com.squaredcandy.protobuf.v1.provider.SmartLightProviderServiceProto.ServerSmartLightCommand
+import com.squaredcandy.protobuf.v1.provider.SmartLightProviderServiceProto.SetSmartLightPropertyRequest
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
-import org.junit.jupiter.api.*
-import com.squaredcandy.ganymede.smartlight.provider.RealSmartLightProviderService
-import com.squaredcandy.ganymede.smartlight.SmartLightServiceLink
-import com.squaredcandy.ganymede.smartlight.model.SmartLightUpdateRequest
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import kotlin.time.ExperimentalTime
-import ResultSubject.Companion.assertThat
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExperimentalCoroutinesApi
@@ -62,9 +62,7 @@ class TestSmartLightProviderService {
 
         // Insert and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
-        val request = ProvideSmartLightRequest {
-            smartLight = testSmartLight.toSmartLightProtoModel()
-        }
+        val request = testSmartLight.toProvideSmartLightRequest()
         val response = providerService.provideSmartLight(request)
         assertThat(response.updated).isTrue()
 
@@ -81,9 +79,7 @@ class TestSmartLightProviderService {
 
         // Insert and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
-        val request = ProvideSmartLightRequest {
-            smartLight = testSmartLight.toSmartLightProtoModel()
-        }
+        val request = testSmartLight.toProvideSmartLightRequest()
         var response = providerService.provideSmartLight(request)
         assertThat(response.updated).isTrue()
 
@@ -108,9 +104,7 @@ class TestSmartLightProviderService {
 
         // Insert and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
-        val request = ProvideSmartLightRequest {
-            smartLight = testSmartLight.toSmartLightProtoModel()
-        }
+        val request = testSmartLight.toProvideSmartLightRequest()
         var response = providerService.provideSmartLight(request)
         assertThat(response.updated).isTrue()
 
@@ -120,9 +114,7 @@ class TestSmartLightProviderService {
 
         // Insert second and verify second inserted
         val testSmartLight2 = getTestSmartLightNoLocation()
-        val request2 = ProvideSmartLightRequest {
-            smartLight = testSmartLight2.toSmartLightProtoModel()
-        }
+        val request2 = testSmartLight2.toProvideSmartLightRequest()
         response = providerService.provideSmartLight(request2)
         assertThat(response.updated).isTrue()
 
@@ -196,9 +188,7 @@ class TestSmartLightProviderService {
 
         // Insert and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
-        val providerRequest = ProvideSmartLightRequest {
-            smartLight = testSmartLight.toSmartLightProtoModel()
-        }
+        val providerRequest = testSmartLight.toProvideSmartLightRequest()
         val provideResponse = providerService.provideSmartLight(providerRequest)
         assertThat(provideResponse.updated).isTrue()
 
@@ -210,7 +200,7 @@ class TestSmartLightProviderService {
         val channel = Channel<ServerSmartLightCommand>(1)
         val channel2 = Channel<ServerSmartLightCommand>(1)
         val commandRequest = SmartLightCommandRequest {
-            ipAddress = testSmartLight.smartLightData.last().ipAddress
+            providerIpAddress = PROVIDER_IP_ADDRESS
         }
         val commandStreamJob = launch {
             providerService.openSmartLightCommandStream(commandRequest, channel)
@@ -238,9 +228,7 @@ class TestSmartLightProviderService {
 
         // Insert and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
-        val providerRequest = ProvideSmartLightRequest {
-            smartLight = testSmartLight.toSmartLightProtoModel()
-        }
+        val providerRequest = testSmartLight.toProvideSmartLightRequest()
         val provideResponse = providerService.provideSmartLight(providerRequest)
         assertThat(provideResponse.updated).isTrue()
 
@@ -252,7 +240,7 @@ class TestSmartLightProviderService {
         val channel = Channel<ServerSmartLightCommand>(1)
         val commandStreamJob = launch {
             val commandRequest = SmartLightCommandRequest {
-                ipAddress = testSmartLight.smartLightData.last().ipAddress
+                providerIpAddress = PROVIDER_IP_ADDRESS
             }
             providerService.openSmartLightCommandStream(commandRequest, channel)
         }
@@ -282,9 +270,7 @@ class TestSmartLightProviderService {
 
         // Insert and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
-        val providerRequest = ProvideSmartLightRequest {
-            smartLight = testSmartLight.toSmartLightProtoModel()
-        }
+        val providerRequest = testSmartLight.toProvideSmartLightRequest()
         val provideResponse = providerService.provideSmartLight(providerRequest)
         assertThat(provideResponse.updated).isTrue()
 
@@ -296,7 +282,7 @@ class TestSmartLightProviderService {
         val channel = Channel<ServerSmartLightCommand>(1)
         val commandStreamJob = launch {
             val commandRequest = SmartLightCommandRequest {
-                ipAddress = testSmartLight.smartLightData.last().ipAddress
+                providerIpAddress = PROVIDER_IP_ADDRESS
             }
             providerService.openSmartLightCommandStream(commandRequest, channel)
         }
@@ -353,74 +339,5 @@ class TestSmartLightProviderService {
             expectComplete()
         }
         commandStreamJob.cancelAndJoin()
-    }
-
-    private fun LightColorProtoModel.toSmartLightColor(): SmartLightCapability.SmartLightColor {
-        return when(colorCase) {
-            LightColorProtoModel.ColorCase.HSB -> SmartLightCapability.SmartLightColor.SmartLightHSB(hsb.hue, hsb.saturation, hsb.brightness)
-            LightColorProtoModel.ColorCase.KELVIN -> SmartLightCapability.SmartLightColor.SmartLightKelvin(kelvin.kelvin, kelvin.brightness)
-            LightColorProtoModel.ColorCase.COLOR_NOT_SET, null -> throw StatusRuntimeException(Status.INVALID_ARGUMENT)
-        }
-    }
-    private fun LightLocationProtoModel.toSmartLightLocation(): SmartLightCapability.SmartLightLocation {
-        return SmartLightCapability.SmartLightLocation(location)
-    }
-    private fun SmartLight.toProvideSmartLightRequest(): ProvideSmartLightRequest {
-        return ProvideSmartLightRequest {
-            smartLight = toSmartLightProtoModel()
-        }
-    }
-    private fun SmartLight.toSmartLightProtoModel(): SmartLightProtoModel {
-        return SmartLightProtoModel {
-            name = this@toSmartLightProtoModel.name
-            macAddress = this@toSmartLightProtoModel.macAddress
-            created {
-                seconds = this@toSmartLightProtoModel.created.toEpochSecond()
-                nanos = this@toSmartLightProtoModel.created.nano
-            }
-            updated {
-                seconds = this@toSmartLightProtoModel.lastUpdated.toEpochSecond()
-                nanos = this@toSmartLightProtoModel.lastUpdated.nano
-            }
-            this@toSmartLightProtoModel.smartLightData.forEach { smartLightData ->
-                addData {
-                    timestamp {
-                        seconds = smartLightData.timestamp.toEpochSecond()
-                        nanos = smartLightData.timestamp.nano
-                    }
-                    isConnected = smartLightData.isConnected
-                    if(smartLightData.ipAddress != null) {
-                        ipAddress = smartLightData.ipAddress
-                    }
-                    isOn = smartLightData.isOn
-                    smartLightData.capabilities.forEach { smartLightCapability ->
-                        when(smartLightCapability) {
-                            is SmartLightCapability.SmartLightColor.SmartLightHSB -> {
-                                color {
-                                    hsb {
-                                        hue = smartLightCapability.hue
-                                        saturation = smartLightCapability.saturation
-                                        brightness = smartLightCapability.brightness
-                                    }
-                                }
-                            }
-                            is SmartLightCapability.SmartLightColor.SmartLightKelvin -> {
-                                color {
-                                    kelvin {
-                                        kelvin = smartLightCapability.kelvin
-                                        brightness = smartLightCapability.brightness
-                                    }
-                                }
-                            }
-                            is SmartLightCapability.SmartLightLocation -> {
-                                location {
-                                    location = smartLightCapability.location
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }

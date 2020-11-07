@@ -1,13 +1,12 @@
+import ResultSubject.Companion.assertThat
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
-import com.google.protobuf.Timestamp
+import com.squaredcandy.ganymede.smartlight.SmartLightServiceLink
+import com.squaredcandy.ganymede.smartlight.provider.RealSmartLightProviderService
+import com.squaredcandy.ganymede.smartlight.user.RealSmartLightUserService
 import com.squaredcandy.io.db.smartlight.SmartLightDatabase
 import com.squaredcandy.io.db.util.DatabaseProvider
-import com.squaredcandy.europa.model.SmartLight
-import com.squaredcandy.europa.model.SmartLightCapability
-import com.squaredcandy.europa.model.SmartLightData
-import com.squaredcandy.protobuf.v1.model.*
-import com.squaredcandy.protobuf.v1.model.SmartLightProto.*
+import com.squaredcandy.protobuf.v1.model.location
 import com.squaredcandy.protobuf.v1.provider.SmartLightCommandRequest
 import com.squaredcandy.protobuf.v1.provider.SmartLightProviderServiceProto
 import com.squaredcandy.protobuf.v1.user.*
@@ -20,15 +19,12 @@ import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.*
-import com.squaredcandy.ganymede.smartlight.user.RealSmartLightUserService
-import com.squaredcandy.ganymede.smartlight.SmartLightServiceLink
-import com.squaredcandy.ganymede.smartlight.provider.RealSmartLightProviderService
-import java.time.Instant
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import java.time.OffsetDateTime
-import java.time.ZoneOffset
 import kotlin.time.ExperimentalTime
-import ResultSubject.Companion.assertThat
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExperimentalCoroutinesApi
@@ -215,14 +211,15 @@ class TestSmartLightUserService {
 
         // Insert smart light
         val testSmartLight = getTestSmartLightAllCapabilities()
-        val inserted = database.upsertSmartLight(testSmartLight)
-        assertThat(inserted).isSuccess()
+        val provideSmartLightRequest = testSmartLight.toProvideSmartLightRequest()
+        val provideSmartLightResponse = providerService.provideSmartLight(provideSmartLightRequest)
+        assertThat(provideSmartLightResponse.updated).isTrue()
 
         // Create and connect stream
         val channel = Channel<SmartLightProviderServiceProto.ServerSmartLightCommand>(1)
         val commandStreamJob = launch {
             val commandRequest = SmartLightCommandRequest {
-                ipAddress = testSmartLight.smartLightData.last().ipAddress
+                providerIpAddress = PROVIDER_IP_ADDRESS
             }
             providerService.openSmartLightCommandStream(commandRequest, channel)
         }
@@ -310,82 +307,5 @@ class TestSmartLightUserService {
             expectComplete()
         }
         commandStreamJob.cancelAndJoin()
-    }
-
-    private fun LightColorProtoModel.toSmartLightColor(): SmartLightCapability.SmartLightColor {
-        return when(colorCase) {
-            LightColorProtoModel.ColorCase.HSB -> SmartLightCapability.SmartLightColor.SmartLightHSB(hsb.hue, hsb.saturation, hsb.brightness)
-            LightColorProtoModel.ColorCase.KELVIN -> SmartLightCapability.SmartLightColor.SmartLightKelvin(kelvin.kelvin, kelvin.brightness)
-            LightColorProtoModel.ColorCase.COLOR_NOT_SET, null -> throw StatusRuntimeException(Status.INVALID_ARGUMENT)
-        }
-    }
-    private fun LightLocationProtoModel.toSmartLightLocation(): SmartLightCapability.SmartLightLocation {
-        return SmartLightCapability.SmartLightLocation(location)
-    }
-    private fun SmartLightCapability.SmartLightColor.toLightColorProtoModel(): LightColorProtoModel {
-        return LightColorProtoModel {
-            when(this@toLightColorProtoModel) {
-                is SmartLightCapability.SmartLightColor.SmartLightHSB -> {
-                    hsb {
-                        hue = this@toLightColorProtoModel.hue
-                        saturation = this@toLightColorProtoModel.saturation
-                        brightness = this@toLightColorProtoModel.brightness
-                    }
-                }
-                is SmartLightCapability.SmartLightColor.SmartLightKelvin -> {
-                    kelvin {
-                        kelvin = this@toLightColorProtoModel.kelvin
-                        brightness = this@toLightColorProtoModel.brightness
-                    }
-                }
-            }
-        }
-    }
-    private fun SmartLightProtoModel.toSmartLight(offset: ZoneOffset = OffsetDateTime.now().offset): SmartLight {
-        return SmartLight(
-            name = this.name,
-            macAddress = this.macAddress,
-            created = this.created.toOffsetDateTime(offset),
-            lastUpdated = this.updated.toOffsetDateTime(offset),
-            smartLightData = this.dataList.map { data -> data.toSmartLightData(offset) }
-        )
-    }
-    private fun Timestamp.toOffsetDateTime(offset: ZoneOffset): OffsetDateTime {
-        return Instant.ofEpochSecond(seconds, nanos.toLong()).atOffset(offset)
-    }
-    private fun SmartLightDataProtoModel.toSmartLightData(offset: ZoneOffset): SmartLightData {
-        val capabilityList = mutableListOf(
-            getColorCapability(),
-            getLocationCapability(),
-        ).filterNotNull()
-        return SmartLightData(
-            timestamp = timestamp.toOffsetDateTime(offset),
-            ipAddress = ipAddress,
-            isOn = isOn,
-            capabilities = capabilityList
-        )
-    }
-    private fun SmartLightDataProtoModel.getColorCapability(): SmartLightCapability.SmartLightColor? {
-        return when (color?.colorCase) {
-            LightColorProtoModel.ColorCase.HSB -> {
-                SmartLightCapability.SmartLightColor.SmartLightHSB(
-                    color.hsb.hue,
-                    color.hsb.saturation,
-                    color.hsb.brightness,
-                )
-            }
-            LightColorProtoModel.ColorCase.KELVIN -> {
-                SmartLightCapability.SmartLightColor.SmartLightKelvin(
-                    color.kelvin.kelvin,
-                    color.kelvin.brightness,
-                )
-            }
-            LightColorProtoModel.ColorCase.COLOR_NOT_SET, null -> null
-        }
-    }
-    private fun SmartLightDataProtoModel.getLocationCapability(): SmartLightCapability.SmartLightLocation? {
-        return if(hasLocation()) {
-            SmartLightCapability.SmartLightLocation(location.location)
-        } else null
     }
 }
