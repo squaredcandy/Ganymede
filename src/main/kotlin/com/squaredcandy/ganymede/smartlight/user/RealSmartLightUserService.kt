@@ -8,6 +8,7 @@ import com.squaredcandy.europa.model.SmartLightCapability.*
 import com.squaredcandy.europa.model.SmartLightData
 import com.squaredcandy.europa.util.Result
 import com.squaredcandy.europa.util.isSuccess
+import com.squaredcandy.europa.util.onSuccessSuspended
 import com.squaredcandy.protobuf.v1.model.*
 import com.squaredcandy.protobuf.v1.model.SmartLightProto.*
 import com.squaredcandy.protobuf.v1.user.GetSmartLightResponse
@@ -20,6 +21,7 @@ import io.grpc.StatusRuntimeException
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.catch
 import com.squaredcandy.ganymede.smartlight.model.SmartLightUpdateRequest
+import com.squaredcandy.protobuf.v1.user.GetAllSmartLightsResponse
 import kotlinx.coroutines.flow.collect
 import java.time.OffsetDateTime
 
@@ -70,6 +72,13 @@ internal class RealSmartLightUserService(
             }
     }
 
+    override suspend fun getAllSmartLights(request: GetAllSmartLightsRequest): GetAllSmartLightsResponse {
+        return when(val getAllSmartLightsResult = userService.getAllSmartLights()) {
+            is Result.Success -> getAllSmartLightsResult.value.toGetAllLightsResponse()
+            is Result.Failure -> throw StatusRuntimeException(Status.INTERNAL)
+        }
+    }
+
     override suspend fun setSmartLightProperty(request: SetSmartLightPropertyRequest): SetSmartLightPropertyResponse {
         val macAddress = if(!request.macAddress.isNullOrBlank()) request.macAddress
         else throw StatusRuntimeException(Status.INVALID_ARGUMENT)
@@ -86,21 +95,27 @@ internal class RealSmartLightUserService(
         }
     }
 
-    private suspend fun <R, T : R> Result<T>.onSuccessSuspended(onSuccess: suspend (value: R) -> Unit): Result<R> {
-        return when(this) {
-            is Result.Success -> { onSuccess(this.value); this }
-            is Result.Failure -> this
-        }
-    }
     private fun SmartLight.toLightStateResponse(): GetSmartLightResponse {
         return GetSmartLightResponse {
-            smartLight = SmartLightProtoModel {
-                name = this@toLightStateResponse.name
-                macAddress = this@toLightStateResponse.macAddress
-                created = this@toLightStateResponse.created.toTimestamp()
-                updated = this@toLightStateResponse.lastUpdated.toTimestamp()
-                addAllData(this@toLightStateResponse.smartLightData.map { it.toSmartLightDataProtoModel() })
-            }
+            smartLight = this@toLightStateResponse.toSmartLightProtoModel()
+        }
+    }
+
+    private fun List<SmartLight>.toGetAllLightsResponse(): GetAllSmartLightsResponse {
+        return GetAllSmartLightsResponse {
+            addAllSmartLight(
+                this@toGetAllLightsResponse.map { it.toSmartLightProtoModel() }.toMutableList()
+            )
+        }
+    }
+
+    private fun SmartLight.toSmartLightProtoModel(): SmartLightProtoModel {
+        return SmartLightProtoModel {
+            name = this@toSmartLightProtoModel.name
+            macAddress = this@toSmartLightProtoModel.macAddress
+            created = this@toSmartLightProtoModel.created.toTimestamp()
+            updated = this@toSmartLightProtoModel.lastUpdated.toTimestamp()
+            addAllData(this@toSmartLightProtoModel.smartLightData.map { it.toSmartLightDataProtoModel() })
         }
     }
 

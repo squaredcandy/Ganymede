@@ -34,8 +34,8 @@ dependencies {
     val h2 = "1.4.199"
     val javax = "1.3.2"
     val turbine = "0.2.1"
-    val io = "0.0.5"
-    val europa = "0.0.7"
+    val io = "0.0.6"
+    val europa = "0.0.8"
 
     implementation(kotlin("stdlib"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutine")

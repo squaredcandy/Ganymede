@@ -9,5 +9,6 @@ import com.squaredcandy.ganymede.smartlight.model.SmartLightUpdateRequest
 interface SmartLightUserService {
     suspend fun getSmartLight(macAddress: String): Result<SmartLight>
     suspend fun getSmartLightUpdates(macAddress: String): Flow<ChangeType<SmartLight>>
+    suspend fun getAllSmartLights(): Result<List<SmartLight>>
     suspend fun userSetSmartLight(request: SmartLightUpdateRequest): Result<Unit>
 }

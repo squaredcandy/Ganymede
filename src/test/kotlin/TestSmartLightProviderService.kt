@@ -1,7 +1,11 @@
 import ResultSubject.Companion.assertThat
+import ResultListSubject.Companion.assertThat
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.squaredcandy.europa.model.SmartLightCapability
+import com.squaredcandy.europa.util.Result
+import com.squaredcandy.europa.util.getValueOrThrow
+import com.squaredcandy.europa.util.onSuccessSuspended
 import com.squaredcandy.ganymede.smartlight.SmartLightServiceLink
 import com.squaredcandy.ganymede.smartlight.model.SmartLightUpdateRequest
 import com.squaredcandy.ganymede.smartlight.provider.RealSmartLightProviderService
@@ -27,9 +31,11 @@ import kotlin.time.ExperimentalTime
 class TestSmartLightProviderService {
 
     @AfterEach
-    fun setupDatabase() = runBlocking {
-        database.getAllSmartLights().forEach {
-            database.removeSmartLight(it.macAddress)
+    fun setupDatabase(): Unit = runBlocking {
+        database.getAllSmartLights().onSuccessSuspended { smartLights ->
+            smartLights.forEach {
+                database.removeSmartLight(it.macAddress)
+            }
         }
     }
 
@@ -58,7 +64,7 @@ class TestSmartLightProviderService {
     fun `Provide smart light`() = runBlocking {
         // Check database empty
         var smartLights = database.getAllSmartLights()
-        assertThat(smartLights).isEmpty()
+        assertThat(smartLights).isSuccessListEmpty()
 
         // Insert and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
@@ -67,15 +73,15 @@ class TestSmartLightProviderService {
         assertThat(response.updated).isTrue()
 
         smartLights = database.getAllSmartLights()
-        assertThat(smartLights).hasSize(1)
-        assertThat(smartLights[0]).isEqualTo(testSmartLight)
+        assertThat(smartLights).isSuccessListHasSize(1)
+        assertThat(smartLights.getItem(0)).isEqualTo(testSmartLight)
     }
 
     @Test
     fun `Provide smart light twice`() = runBlocking {
         // Check database empty
         var smartLights = database.getAllSmartLights()
-        assertThat(smartLights).isEmpty()
+        assertThat(smartLights).isSuccessListEmpty()
 
         // Insert and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
@@ -84,23 +90,23 @@ class TestSmartLightProviderService {
         assertThat(response.updated).isTrue()
 
         smartLights = database.getAllSmartLights()
-        assertThat(smartLights).hasSize(1)
-        assertThat(smartLights[0]).isEqualTo(testSmartLight)
+        assertThat(smartLights).isSuccessListHasSize(1)
+        assertThat(smartLights.getItem(0)).isEqualTo(testSmartLight)
 
         // Insert again and verify nothing changed
         response = providerService.provideSmartLight(request)
         assertThat(response.updated).isFalse()
 
         smartLights = database.getAllSmartLights()
-        assertThat(smartLights).hasSize(1)
-        assertThat(smartLights[0]).isEqualTo(testSmartLight)
+        assertThat(smartLights).isSuccessListHasSize(1)
+        assertThat(smartLights.getItem(0)).isEqualTo(testSmartLight)
     }
 
     @Test
     fun `Provide two different smart lights`() = runBlocking {
         // Check database empty
         var smartLights = database.getAllSmartLights()
-        assertThat(smartLights).isEmpty()
+        assertThat(smartLights).isSuccessListEmpty()
 
         // Insert and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
@@ -109,8 +115,8 @@ class TestSmartLightProviderService {
         assertThat(response.updated).isTrue()
 
         smartLights = database.getAllSmartLights()
-        assertThat(smartLights).hasSize(1)
-        assertThat(smartLights[0]).isEqualTo(testSmartLight)
+        assertThat(smartLights).isSuccessListHasSize(1)
+        assertThat(smartLights.getItem(0)).isEqualTo(testSmartLight)
 
         // Insert second and verify second inserted
         val testSmartLight2 = getTestSmartLightNoLocation()
@@ -119,8 +125,8 @@ class TestSmartLightProviderService {
         assertThat(response.updated).isTrue()
 
         smartLights = database.getAllSmartLights()
-        assertThat(smartLights).hasSize(2)
-        val result = smartLights.all { it == testSmartLight || it == testSmartLight2 }
+        assertThat(smartLights).isSuccessListHasSize(2)
+        val result = smartLights.get().all { it == testSmartLight || it == testSmartLight2 }
         assertThat(result).isTrue()
     }
 
@@ -128,7 +134,7 @@ class TestSmartLightProviderService {
     fun `Provide smart lights stress test`() = runBlocking {
         // Check database empty
         var smartLights = database.getAllSmartLights()
-        assertThat(smartLights).isEmpty()
+        assertThat(smartLights).isSuccessListEmpty()
 
         // Insert 4 smart lights and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
@@ -151,8 +157,8 @@ class TestSmartLightProviderService {
         deferredList.forEach { assertThat(it.updated).isTrue() }
 
         smartLights = database.getAllSmartLights()
-        assertThat(smartLights).hasSize(4)
-        val result = smartLights.all {
+        assertThat(smartLights).isSuccessListHasSize(4)
+        val result = smartLights.get().all {
             it == testSmartLight ||
                 it == testSmartLight2 ||
                 it == testSmartLight3 ||
@@ -184,7 +190,7 @@ class TestSmartLightProviderService {
     fun `Open a two command streams with the same IP Address`() = runBlocking {
         // Check database empty
         var smartLights = database.getAllSmartLights()
-        assertThat(smartLights).isEmpty()
+        assertThat(smartLights).isSuccessListEmpty()
 
         // Insert and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
@@ -193,8 +199,8 @@ class TestSmartLightProviderService {
         assertThat(provideResponse.updated).isTrue()
 
         smartLights = database.getAllSmartLights()
-        assertThat(smartLights).hasSize(1)
-        assertThat(smartLights[0]).isEqualTo(testSmartLight)
+        assertThat(smartLights).isSuccessListHasSize(1)
+        assertThat(smartLights.getItem(0)).isEqualTo(testSmartLight)
 
         // Open stream
         val channel = Channel<ServerSmartLightCommand>(1)
@@ -224,7 +230,7 @@ class TestSmartLightProviderService {
     fun `Open a command stream and send a name update command`() = runBlocking {
         // Check database empty
         var smartLights = database.getAllSmartLights()
-        assertThat(smartLights).isEmpty()
+        assertThat(smartLights).isSuccessListEmpty()
 
         // Insert and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
@@ -233,8 +239,8 @@ class TestSmartLightProviderService {
         assertThat(provideResponse.updated).isTrue()
 
         smartLights = database.getAllSmartLights()
-        assertThat(smartLights).hasSize(1)
-        assertThat(smartLights[0]).isEqualTo(testSmartLight)
+        assertThat(smartLights).isSuccessListHasSize(1)
+        assertThat(smartLights.getItem(0)).isEqualTo(testSmartLight)
 
         // Open stream
         val channel = Channel<ServerSmartLightCommand>(1)
@@ -266,7 +272,7 @@ class TestSmartLightProviderService {
     fun `Open a command stream and send all commands`() = runBlocking {
         // Check database empty
         var smartLights = database.getAllSmartLights()
-        assertThat(smartLights).isEmpty()
+        assertThat(smartLights).isSuccessListEmpty()
 
         // Insert and verify inserted
         val testSmartLight = getTestSmartLightAllCapabilities()
@@ -275,8 +281,8 @@ class TestSmartLightProviderService {
         assertThat(provideResponse.updated).isTrue()
 
         smartLights = database.getAllSmartLights()
-        assertThat(smartLights).hasSize(1)
-        assertThat(smartLights[0]).isEqualTo(testSmartLight)
+        assertThat(smartLights).isSuccessListHasSize(1)
+        assertThat(smartLights.getItem(0)).isEqualTo(testSmartLight)
 
         // Open stream
         val channel = Channel<ServerSmartLightCommand>(1)
@@ -339,5 +345,17 @@ class TestSmartLightProviderService {
             expectComplete()
         }
         commandStreamJob.cancelAndJoin()
+    }
+
+    private fun <T> Result<List<T>>.get(): List<T> {
+        return this.getValueOrThrow()
+    }
+
+    private fun <T> Result<List<T>>.getItem(index: Int): T {
+        return this.getValueOrThrow()[index]
+    }
+
+    private fun <T> Result<List<T>>.getLastItem(): T {
+        return this.getValueOrThrow().last()
     }
 }

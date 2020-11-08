@@ -7,6 +7,23 @@ package com.squaredcandy.protobuf.v1.user;
 option java_package = "com.squaredcandy.protobuf.v1.user";
 option java_outer_classname = "SmartLightUserServiceProto";
 
+message GetSmartLightRequest {
+	string user_id = 1;
+	string mac_address = 2;
+}
+
+message GetSmartLightResponse {
+	com.squaredcandy.protobuf.v1.model.SmartLightProtoModel smart_light = 1;
+}
+
+message GetAllSmartLightsRequest {
+	string user_id = 1;
+}
+
+message GetAllSmartLightsResponse {
+	repeated com.squaredcandy.protobuf.v1.model.SmartLightProtoModel smart_light = 1;
+}
+
 message SetSmartLightPropertyRequest {
 	string userId = 1;
 	string mac_address = 2;
@@ -22,17 +39,9 @@ message SetSmartLightPropertyResponse {
 	bool updated = 1;
 }
 
-message GetSmartLightRequest {
-	string user_id = 1;
-	string mac_address = 2;
-}
-
-message GetSmartLightResponse {
-	com.squaredcandy.protobuf.v1.model.SmartLightProtoModel smart_light = 1;
-}
-
 service SmartLightUserService {
 	rpc GetSmartLight (GetSmartLightRequest) returns (GetSmartLightResponse);
 	rpc GetSmartLightStream (GetSmartLightRequest) returns (stream GetSmartLightResponse);
+	rpc GetAllSmartLights (GetAllSmartLightsRequest) returns (GetAllSmartLightsResponse);
 	rpc SetSmartLightProperty (SetSmartLightPropertyRequest) returns (SetSmartLightPropertyResponse);
 }

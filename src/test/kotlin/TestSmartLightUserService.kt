@@ -1,6 +1,8 @@
 import ResultSubject.Companion.assertThat
+import ResultListSubject.Companion.assertThat
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import com.squaredcandy.europa.util.onSuccessSuspended
 import com.squaredcandy.ganymede.smartlight.SmartLightServiceLink
 import com.squaredcandy.ganymede.smartlight.provider.RealSmartLightProviderService
 import com.squaredcandy.ganymede.smartlight.user.RealSmartLightUserService
@@ -32,9 +34,11 @@ import kotlin.time.ExperimentalTime
 class TestSmartLightUserService {
 
     @AfterEach
-    fun setupDatabase() = runBlocking {
-        database.getAllSmartLights().forEach {
-            database.removeSmartLight(it.macAddress)
+    fun setupDatabase(): Unit = runBlocking {
+        database.getAllSmartLights().onSuccessSuspended { smartLights ->
+            smartLights.forEach {
+                database.removeSmartLight(it.macAddress)
+            }
         }
     }
 
@@ -98,7 +102,7 @@ class TestSmartLightUserService {
     fun `Insert and get smart light`() = runBlocking {
         // Check database empty
         val smartLights = database.getAllSmartLights()
-        assertThat(smartLights).isEmpty()
+        assertThat(smartLights).isSuccessListEmpty()
 
         // Insert smart light
         val testSmartLight = getTestSmartLightAllCapabilities()
@@ -111,6 +115,28 @@ class TestSmartLightUserService {
         }
         val response = userService.getSmartLight(request)
         assertThat(response.smartLight.toSmartLight()).isEqualTo(testSmartLight)
+    }
+
+    @Test
+    fun `Insert two smart lights and get all smart lights`() = runBlocking {
+        // Check database empty
+        val smartLights = database.getAllSmartLights()
+        assertThat(smartLights).isSuccessListEmpty()
+
+        // Insert smart light one
+        val testSmartLight = getTestSmartLightAllCapabilities()
+        database.upsertSmartLight(testSmartLight)
+
+        // Insert smart light one
+        val testSmartLight2 = getTestSmartLightNoLocation()
+        database.upsertSmartLight(testSmartLight2)
+
+        // Create request and send, verifying result
+        val request = GetAllSmartLightsRequest {
+            userId = ""
+        }
+        val response = userService.getAllSmartLights(request)
+        assertThat(response.smartLightList).hasSize(2)
     }
 
     @Test
@@ -207,7 +233,7 @@ class TestSmartLightUserService {
     fun `Stress test updating smart light property`() = runBlocking {
         // Check database empty
         val smartLights = database.getAllSmartLights()
-        assertThat(smartLights).isEmpty()
+        assertThat(smartLights).isSuccessListEmpty()
 
         // Insert smart light
         val testSmartLight = getTestSmartLightAllCapabilities()

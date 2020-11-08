@@ -3,6 +3,7 @@ package com.squaredcandy.ganymede.smartlight
 import com.squaredcandy.io.db.smartlight.SmartLightDatabase
 import com.squaredcandy.europa.model.SmartLight
 import com.squaredcandy.europa.util.Result
+import com.squaredcandy.europa.util.map
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
 import kotlinx.coroutines.channels.SendChannel
@@ -36,6 +37,10 @@ open class SmartLightServiceLink(
 
     override suspend fun getSmartLightUpdates(macAddress: String): Flow<ChangeType<SmartLight>> {
         return database.getOnSmartLightChanged(macAddress)
+    }
+
+    override suspend fun getAllSmartLights(): Result<List<SmartLight>> {
+        return database.getAllSmartLights()
     }
 
     @ExperimentalCoroutinesApi
@@ -81,7 +86,7 @@ open class SmartLightServiceLink(
             if(newProviderIpAddress == null) return@also
             val ipAddress = smartLight.smartLightData.lastOrNull()?.ipAddress ?: return@also
             lightProviderMap[ipAddress] = newProviderIpAddress
-        }
+        }.map { Unit }
     }
 
     @ExperimentalCoroutinesApi
